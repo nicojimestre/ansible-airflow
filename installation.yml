@@ -1,0 +1,82 @@
+---
+- name: Install rabbitmq and airflow and connect the node to the master
+  hosts: all
+  become: true
+  tasks:
+  - name: ensure that it is updated
+    command: apt-get update
+    become: yes
+  - name: ensure it is upgaded
+    apt:
+      upgrade: dist
+  - name: install python pip
+    apt:
+     name: python-pip
+     state: latest
+  - name: install virtualenv
+    apt:
+     name: virtualenv
+     state: latest
+  - name: create a virtualenv
+    command: virtualenv myenv
+  - name: install apache-airflow
+    pip:
+     name: apache-airflow
+     virtualenv: ~/myenv/bin/
+  - name: install apache-airflow
+    pip:
+     name: apache-airflow[hive]
+     virtualenv: ~/myenv/bin/
+  - name: install apache-airflow
+    pip:
+     name: apache-airflow[celery]
+     virtualenv: ~/myenv/bin/
+  - name: install rabbitmq
+    apt:
+     name: rabbitmq-server
+     state: latest
+  - name: install rabbitmq plugins
+    command: rabbitmq-plugins enable rabbitmq_management
+    become: yes
+  - name: stop the rabbitmq node
+    command: service rabbitmq-server stop
+    become: yes
+  - name: move the cookie to a backup
+    command: mv /var/lib/rabbitmq/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie.backup
+    become: yes
+      - name: create the file erlang cookie
+    file:
+      path: /var/lib/rabbitmq/.erlang.cookie
+      state: touch
+  - name: copy the file from the local machine to the remote
+    copy:
+      src: /var/lib/rabbitmq/.erlang.cookie
+      dest: /var/lib/rabbitmq/.erlang.cookie
+      backup: yes
+      become: yes
+  - name: template the cookie file from the local machine to the remote
+    copy:
+      src: /var/lib/rabbitmq/.erlang.cookie
+      dest: /var/lib/rabbitmq/.erlang.cookie
+      become: yes
+  - name: give permissions to the new cookie
+    command: chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+    become: yes
+  - name: give permissions to the new erlang cookie
+    command: chmod 600 /var/lib/rabbitmq/.erlang.cookie
+    become: yes
+  - name: start the node
+    command: rabbitmq-server -detached
+    become: yes
+  - name: stop the rabbitmq app
+    command: rabbitmqctl stop_app
+    become: yes
+  - name: join cluster
+    command: rabbitmqctl join_cluster rabbit@alpha
+    become: yes
+  - name: startup the rabbitmq
+    command: rabbitmqctl start_app
+    become: yes
+  - name: run the airflow webserver
+    command: airflow webserver
+    become: yes
