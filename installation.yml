@@ -41,6 +41,7 @@
   - name: stop the rabbitmq node
     command: service rabbitmq-server stop
     become: yes
+    # L'étape du dessous ne peut se faire qu'une fois car apres sinon l'ancien cookie va être écrasé
   - name: move the cookie to a backup
     command: mv /var/lib/rabbitmq/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie.backup
     become: yes
@@ -77,6 +78,8 @@
   - name: startup the rabbitmq
     command: rabbitmqctl start_app
     become: yes
+    # ce qui est en bas ne va pas marcher car il faut le lancer depuis le virtualenv et 
+    # cette étape permet de créer le dossier airflow pour modifier le fichier de config avec celui qui est donné dans le repo 
   - name: run the airflow webserver
     command: airflow webserver
     become: yes
